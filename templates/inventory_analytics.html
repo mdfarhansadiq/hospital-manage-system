@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Inventory Analytics</h2>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Inventory Value</h5>
+                    <h2>${{ "%.2f"|format(total_value) }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-title">Items Expiring Soon</div>
+                <div class="card-body">
+                    <h2>{{ expiring_summary }}</h2>
+                    <p>Items expiring in next 90 days</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-title">Consumption Trends</div>
+                <div class="card-body">
+                    <canvas id="consumptionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Consumption Data Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Consumption Analysis (Last 30 Days)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Total Consumed</th>
+                            <th>Average Daily Usage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item_id, total in consumption_data %}
+                        <tr>
+                            <td>{{ item_id }}</td>
+                            <td>{{ abs(total) }}</td>
+                            <td>{{ "%.2f"|format(abs(total/30)) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Initialize consumption chart
+    const ctx = document.getElementById('consumptionChart').getContext('2d');
+    const consumptionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ consumption_data|map(attribute='0')|list|tojson }},
+            datasets: [{
+                label: 'Total Consumption',
+                data: {{ consumption_data|map(attribute='1')|map('abs')|list|tojson }},
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

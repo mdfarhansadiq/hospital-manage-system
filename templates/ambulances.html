@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Ambulance Management</h5>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAmbulanceModal">
+            <i class="fas fa-plus"></i> New Ambulance
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="alert alert-info">
+                    <strong>Available Ambulances:</strong> {{ ambulances|selectattr('status', 'equalto', 'available')|list|length }}
+                    <strong class="ms-3">Active Dispatches:</strong> {{ ambulances|selectattr('status', 'equalto', 'busy')|list|length }}
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Vehicle Number</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Location</th>
+                        <th>Last Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ambulance in ambulances %}
+                    <tr>
+                        <td>{{ ambulance.vehicle_number }}</td>
+                        <td>{{ ambulance.vehicle_type }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if ambulance.status == 'available' 
+                                               else 'warning' if ambulance.status == 'busy'
+                                               else 'secondary' }}">
+                                {{ ambulance.status }}
+                            </span>
+                        </td>
+                        <td>{{ ambulance.current_location or 'Not updated' }}</td>
+                        <td>{{ ambulance.last_location_update.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="updateLocation('{{ ambulance.id }}')"
+                                    {% if ambulance.status == 'maintenance' %}disabled{% endif %}>
+                                <i class="fas fa-location-dot"></i> Update Location
+                            </button>
+                            {% if ambulance.status == 'available' %}
+                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" 
+                                    data-bs-target="#dispatchModal" 
+                                    onclick="prepareDispatch('{{ ambulance.id }}')">
+                                <i class="fas fa-ambulance"></i> Dispatch
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Ambulance Modal -->
+<div class="modal fade" id="addAmbulanceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Ambulance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAmbulanceForm" method="POST" action="{{ url_for('ambulance.add_ambulance') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Vehicle Number</label>
+                        <input type="text" class="form-control" name="vehicle_number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vehicle Type</label>
+                        <select class="form-select" name="vehicle_type" required>
+                            <option value="Basic">Basic</option>
+                            <option value="Advanced Life Support">Advanced Life Support</option>
+                            <option value="Patient Transport">Patient Transport</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Capacity</label>
+                        <input type="number" class="form-control" name="capacity" value="2" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Equipment</label>
+                        <textarea class="form-control" name="equipment" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Next Maintenance Due</label>
+                        <input type="date" class="form-control" name="maintenance_due_date" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="addAmbulanceForm" class="btn btn-primary">Add Ambulance</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dispatch Modal -->
+<div class="modal fade" id="dispatchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dispatch Ambulance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="dispatchForm" method="POST" action="{{ url_for('ambulance.dispatch_ambulance') }}">
+                    <input type="hidden" name="ambulance_id" id="dispatch_ambulance_id">
+                    <div class="mb-3">
+                        <label class="form-label">Pickup Location</label>
+                        <input type="text" class="form-control" name="pickup_location" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Destination</label>
+                        <input type="text" class="form-control" name="destination" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Priority Level</label>
+                        <select class="form-select" name="priority_level" required>
+                            <option value="emergency">Emergency</option>
+                            <option value="urgent">Urgent</option>
+                            <option value="non-urgent">Non-urgent</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="dispatchForm" class="btn btn-primary">Dispatch</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function updateLocation(ambulanceId) {
+    // Get current location using browser's geolocation API
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            const location = `${position.coords.latitude}, ${position.coords.longitude}`;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/ambulances/${ambulanceId}/update`;
+            
+            const locationInput = document.createElement('input');
+            locationInput.type = 'hidden';
+            locationInput.name = 'current_location';
+            locationInput.value = location;
+            
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = 'available';
+            
+            form.appendChild(locationInput);
+            form.appendChild(statusInput);
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
+}
+
+function prepareDispatch(ambulanceId) {
+    document.getElementById('dispatch_ambulance_id').value = ambulanceId;
+}
+</script>
+{% endblock %}
+
+{% endblock %}

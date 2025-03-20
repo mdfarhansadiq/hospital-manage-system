@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Prescriptions</h5>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPrescriptionModal">
+            <i class="fas fa-plus"></i> New Prescription
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <input type="text" class="form-control" id="prescriptionSearch" 
+                   onkeyup="searchTable('prescriptionSearch', 'prescriptionTable')" 
+                   placeholder="Search prescriptions...">
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover" id="prescriptionTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Patient</th>
+                        <th>Doctor</th>
+                        <th>Date</th>
+                        <th>Diagnosis</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prescription in prescriptions %}
+                    <tr>
+                        <td>{{ prescription.id }}</td>
+                        <td>{{ prescription.patient.name }}</td>
+                        <td>{{ prescription.doctor.name }}</td>
+                        <td>{{ prescription.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ prescription.diagnosis[:50] }}...</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if prescription.status == 'active' else 'secondary' }}">
+                                {{ prescription.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="viewPrescription({{ prescription.id }})"
+                                    data-bs-toggle="tooltip" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-warning" onclick="editPrescription({{ prescription.id }})"
+                                    data-bs-toggle="tooltip" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="printPrescription({{ prescription.id }})"
+                                    data-bs-toggle="tooltip" title="Print">
+                                <i class="fas fa-print"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Prescription Modal -->
+<div class="modal fade" id="addPrescriptionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Prescription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="prescriptionForm" method="POST" action="{{ url_for('add_prescription') }}" class="needs-validation" novalidate>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Patient</label>
+                            <select class="form-select" name="patient_id" required>
+                                <option value="">Select Patient</option>
+                                {% for patient in patients %}
+                                <option value="{{ patient.id }}">{{ patient.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" name="date" required
+                                   value="{{ today.strftime('%Y-%m-%d') }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Diagnosis</label>
+                        <textarea class="form-control" name="diagnosis" rows="2" required></textarea>
+                    </div>
+
+                    <div id="medications-container">
+                        <h6 class="mb-3">Medications</h6>
+                        <div class="medication-entry mb-3">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" name="medications[]" placeholder="Medication Name" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="text" class="form-control" name="dosages[]" placeholder="Dosage" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="text" class="form-control" name="frequencies[]" placeholder="Frequency" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="text" class="form-control" name="durations[]" placeholder="Duration" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="instructions[]" placeholder="Instructions">
+                                        <button type="button" class="btn btn-outline-danger" onclick="removeMedicationEntry(this)">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addMedicationEntry()">
+                        <i class="fas fa-plus"></i> Add Medication
+                    </button>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="prescriptionForm" class="btn btn-primary">Save Prescription</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function addMedicationEntry() {
+    const container = document.getElementById('medications-container');
+    const entryTemplate = `
+        <div class="medication-entry mb-3">
+            <div class="row">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="medications[]" placeholder="Medication Name" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control" name="dosages[]" placeholder="Dosage" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control" name="frequencies[]" placeholder="Frequency" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control" name="durations[]" placeholder="Duration" required>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="instructions[]" placeholder="Instructions">
+                        <button type="button" class="btn btn-outline-danger" onclick="removeMedicationEntry(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', entryTemplate);
+}
+
+function removeMedicationEntry(button) {
+    button.closest('.medication-entry').remove();
+}
+
+function viewPrescription(id) {
+    fetch(`/prescriptions/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            // Handle viewing prescription details
+            console.log(data);
+        });
+}
+
+function editPrescription(id) {
+    // Handle editing prescription
+    console.log('Edit prescription:', id);
+}
+
+function printPrescription(id) {
+    // Handle printing prescription
+    console.log('Print prescription:', id);
+}
+</script>
+{% endblock %}
+
+{% endblock %}

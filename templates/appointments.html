@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Appointments</h5>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAppointmentModal">
+            <i class="fas fa-plus"></i> Schedule Appointment
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <input type="text" class="form-control" id="appointmentSearch" 
+                   onkeyup="searchTable('appointmentSearch', 'appointmentTable')" 
+                   placeholder="Search appointments...">
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover" id="appointmentTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Patient</th>
+                        <th>Doctor</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in appointments %}
+                    <tr>
+                        <td>{{ appointment.id }}</td>
+                        <td>{{ appointment.patient.name }}</td>
+                        <td>{{ appointment.doctor.name }}</td>
+                        <td>{{ appointment.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ appointment.time.strftime('%H:%M') }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if appointment.status == 'Confirmed' 
+                                               else 'warning' if appointment.status == 'Scheduled'
+                                               else 'danger' }}">
+                                {{ appointment.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="viewAppointment({{ appointment.id }})"
+                                    data-bs-toggle="tooltip" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            {% if appointment.status == 'Scheduled' %}
+                            <button class="btn btn-sm btn-warning" onclick="rescheduleAppointment({{ appointment.id }})"
+                                    data-bs-toggle="tooltip" title="Reschedule">
+                                <i class="fas fa-clock"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Appointment Modal -->
+<div class="modal fade" id="addAppointmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Schedule Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="appointmentForm" action="{{ url_for('schedule_appointment') }}" 
+                      method="POST" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Patient</label>
+                        <select class="form-select" name="patient_id" required>
+                            <option value="">Select Patient</option>
+                            {% for patient in patients %}
+                            <option value="{{ patient.id }}">{{ patient.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Doctor</label>
+                        <select class="form-select" name="doctor_id" required onchange="loadDoctorAvailability()">
+                            <option value="">Select Doctor</option>
+                            {% for doctor in doctors %}
+                            <option value="{{ doctor.id }}">{{ doctor.name }} ({{ doctor.specialization }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" name="date" required 
+                               onchange="loadDoctorAvailability()"
+                               min="{{ today.strftime('%Y-%m-%d') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Time</label>
+                        <select class="form-select" name="time" required>
+                            <option value="">Select Time Slot</option>
+                            <!-- Time slots will be populated dynamically -->
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="appointmentForm" class="btn btn-primary">Schedule</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadDoctorAvailability() {
+    const doctorSelect = document.querySelector('select[name="doctor_id"]');
+    const dateInput = document.querySelector('input[name="date"]');
+    const timeSelect = document.querySelector('select[name="time"]');
+
+    const doctorId = doctorSelect.value;
+    const date = dateInput.value;
+
+    if (!doctorId || !date) return;
+
+    // Clear current time slots
+    timeSelect.innerHTML = '<option value="">Select Time Slot</option>';
+
+    fetch(`/api/doctor-availability/${doctorId}?date=${date}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            data.available_slots.forEach(slot => {
+                const option = document.createElement('option');
+                option.value = slot;
+                option.textContent = slot;
+                timeSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading doctor availability');
+        });
+}
+
+function viewAppointment(id) {
+    // Implement view functionality
+}
+
+function rescheduleAppointment(id) {
+    // Implement reschedule functionality
+}
+</script>
+{% endblock %}

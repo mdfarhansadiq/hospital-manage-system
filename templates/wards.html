@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="row">
+    <!-- Ward Overview -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Ward Management</h5>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addWardModal">
+                    <i class="fas fa-plus"></i> Add Ward
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for ward in wards %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">{{ ward.name }}</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <span>
+                                        <i class="fas fa-bed"></i> Capacity: {{ ward.capacity }}
+                                    </span>
+                                    <span class="badge bg-info">
+                                        Available Beds: {{ ward.capacity - ward.occupied }}
+                                    </span>
+                                </div>
+                                
+                                <!-- Bed Status Grid -->
+                                <div class="bed-grid">
+                                    {% for bed in beds if bed.ward_id == ward.id %}
+                                    <div class="bed-item" data-bs-toggle="tooltip" 
+                                         title="{{ 'Occupied' if bed.occupied else 'Available' }} - Bed {{ bed.number }}">
+                                        <span class="bed-status {{ 'bed-occupied' if bed.occupied else 'bed-available' }}"></span>
+                                        <small>{{ bed.number }}</small>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            
+                                <div class="mt-3">
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="tooltip" title="View Details">
+                                        <i class="fas fa-eye"></i> Details
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="Edit Ward">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-success" data-bs-toggle="tooltip" title="Manage Beds">
+                                        <i class="fas fa-bed"></i> Manage Beds
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Ward Modal -->
+<div class="modal fade" id="addWardModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Ward</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addWardForm" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Ward Name</label>
+                        <input type="text" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Capacity</label>
+                        <input type="number" class="form-control" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ward Type</label>
+                        <select class="form-select" required>
+                            <option value="">Select Ward Type</option>
+                            <option value="general">General Ward</option>
+                            <option value="icu">Intensive Care Unit</option>
+                            <option value="emergency">Emergency Ward</option>
+                            <option value="pediatric">Pediatric Ward</option>
+                            <option value="maternity">Maternity Ward</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Floor</label>
+                        <input type="number" class="form-control" min="0" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="addWardForm" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Bed Modal -->
+<div class="modal fade" id="manageBedModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Bed</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="manageBedForm" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Bed Number</label>
+                        <input type="number" class="form-control" required readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" required>
+                            <option value="available">Available</option>
+                            <option value="occupied">Occupied</option>
+                            <option value="maintenance">Under Maintenance</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Patient (if occupied)</label>
+                        <select class="form-select">
+                            <option value="">Select Patient</option>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="manageBedForm" class="btn btn-primary">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bed-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .bed-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 5px;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .bed-item:hover {
+        background-color: var(--bs-light);
+    }
+
+    .bed-status {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-bottom: 5px;
+    }
+
+    .bed-occupied {
+        background-color: var(--bs-danger);
+    }
+
+    .bed-available {
+        background-color: var(--bs-success);
+    }
+</style>
+{% endblock %}

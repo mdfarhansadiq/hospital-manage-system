@@ -1,0 +1,42 @@
+<div class="modal fade" id="addAllergyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Allergy</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAllergyForm" action="{{ url_for('add_allergy', id=patient.id) }}" method="POST" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Allergen</label>
+                        <input type="text" class="form-control" name="allergen" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Severity</label>
+                        <select class="form-select" name="severity" required>
+                            <option value="mild">Mild</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="severe">Severe</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reaction</label>
+                        <textarea class="form-control" name="reaction" rows="2" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Diagnosis Date</label>
+                        <input type="date" class="form-control" name="diagnosis_date">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="addAllergyForm" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+</div>

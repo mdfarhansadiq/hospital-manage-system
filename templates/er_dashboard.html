@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <!-- Emergency Room Status Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Patients</h5>
+                    <h2>{{ er_stats.total_patients }}</h2>
+                    <p class="mb-0">Currently in ER</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Available Beds</h5>
+                    <h2>{{ er_stats.available_beds }}</h2>
+                    <p class="mb-0">Ready for use</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Waiting Patients</h5>
+                    <h2>{{ er_stats.waiting_patients }}</h2>
+                    <p class="mb-0">In queue</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Average Wait Time</h5>
+                    <h2>{{ er_stats.avg_wait_time }}m</h2>
+                    <p class="mb-0">Current estimate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Triage Categories Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Triage Categories</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for category, count in triage_counts.items() %}
+                        <div class="col">
+                            <div class="p-3 rounded" style="background-color: {{ TRIAGE_COLORS[category] }}20">
+                                <h6 class="text-capitalize">{{ category }}</h6>
+                                <h3>{{ count }}</h3>
+                                <small>patients</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patient Queue -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Patient Queue</h5>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPatientModal">
+                <i class="fas fa-plus"></i> New Patient
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Queue #</th>
+                            <th>Patient</th>
+                            <th>Triage</th>
+                            <th>Wait Time</th>
+                            <th>Chief Complaint</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for admission in queue %}
+                        <tr class="table-{{ 'danger' if admission.triage_category == 'immediate' 
+                                    else 'warning' if admission.triage_category == 'emergency'
+                                    else 'info' if admission.triage_category == 'urgent'
+                                    else 'success' if admission.triage_category == 'standard'
+                                    else 'secondary' }}">
+                            <td>{{ admission.queue_position }}</td>
+                            <td>{{ admission.patient.name }}</td>
+                            <td>
+                                <span class="badge" style="background-color: {{ TRIAGE_COLORS[admission.triage_category] }}">
+                                    {{ admission.triage_category }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ admission.estimated_wait_time }}m
+                                <br>
+                                <small class="text-muted">
+                                    Waiting: {{ ((now - admission.created_at).total_seconds() / 60) | int }}m
+                                </small>
+                            </td>
+                            <td>{{ admission.chief_complaint }}</td>
+                            <td>{{ admission.status }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="viewPatient({{ admission.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="assignBed({{ admission.id }})">
+                                    <i class="fas fa-bed"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="updateTriage({{ admission.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bed Status -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Bed Status</h5>
+        </div>
+        <div class="card-body">
+            {% for ward in er_wards %}
+            <h6 class="mb-3">{{ ward.name }}</h6>
+            <div class="row mb-4">
+                {% for bed in ward.beds %}
+                <div class="col-md-2 col-sm-3 mb-3">
+                    <div class="card {{ 'bg-success text-white' if not bed.occupied 
+                                else 'bg-danger text-white' }}">
+                        <div class="card-body p-2 text-center">
+                            <h6 class="mb-0">Bed {{ bed.number }}</h6>
+                            {% if bed.occupied %}
+                                <small>{{ bed.admission.patient.name }}</small>
+                            {% else %}
+                                <small>Available</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Patient Modal -->
+<div class="modal fade" id="addPatientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New ER Patient</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPatientForm" action="{{ url_for('add_er_patient') }}" method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Patient Name</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Age</label>
+                            <input type="number" class="form-control" name="age" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Gender</label>
+                            <select class="form-select" name="gender" required>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Chief Complaint</label>
+                        <textarea class="form-control" name="chief_complaint" rows="2" required></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Triage Category</label>
+                            <select class="form-select" name="triage_category" required>
+                                <option value="immediate">Immediate (Red)</option>
+                                <option value="emergency">Emergency (Orange)</option>
+                                <option value="urgent">Urgent (Yellow)</option>
+                                <option value="standard">Standard (Green)</option>
+                                <option value="non_urgent">Non-Urgent (Blue)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Initial Assessment</label>
+                            <textarea class="form-control" name="initial_assessment" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Temperature</label>
+                            <input type="number" step="0.1" class="form-control" name="temperature">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Blood Pressure</label>
+                            <input type="text" class="form-control" name="blood_pressure" placeholder="120/80">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Heart Rate</label>
+                            <input type="number" class="form-control" name="heart_rate">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Oxygen Saturation</label>
+                            <input type="number" class="form-control" name="oxygen_saturation">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="addPatientForm" class="btn btn-primary">Add Patient</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function viewPatient(admissionId) {
+    window.location.href = `/admission/${admissionId}`;
+}
+
+function assignBed(admissionId) {
+    // Implementation for bed assignment
+}
+
+function updateTriage(admissionId) {
+    // Implementation for updating triage category
+}
+
+// Refresh data every 30 seconds
+setInterval(function() {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}
+
+{% endblock %}

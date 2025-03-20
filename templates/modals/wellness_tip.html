@@ -1,0 +1,32 @@
+<div class="modal fade" id="wellnessTipModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Personalized Wellness Tip</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {% if tip_data.success %}
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="lead mb-0">{{ tip_data.tip }}</p>
+                        </div>
+                        <div class="card-footer text-muted">
+                            <small>Generated on {{ tip_data.generated_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        {{ tip_data.tip }}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{{ url_for('get_wellness_tip', id=patient.id) }}" class="btn btn-primary">
+                    <i class="fas fa-sync"></i> Generate New Tip
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

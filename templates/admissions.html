@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col d-flex justify-content-between align-items-center">
+            <h2>Active Admissions</h2>
+            <a href="{{ url_for('admission_analytics') }}" class="btn btn-primary">
+                <i class="fas fa-chart-line"></i> View Analytics
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    {% if admissions %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Ward</th>
+                                    <th>Bed</th>
+                                    <th>Admission Date</th>
+                                    <th>Doctor In Charge</th>
+                                    <th>Priority</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for admission in admissions %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('patient_detail', id=admission.patient.id) }}">
+                                            {{ admission.patient.name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ admission.bed.ward.name if admission.bed else 'Waiting' }}</td>
+                                    <td>{{ admission.bed.number if admission.bed else '-' }}</td>
+                                    <td>{{ admission.admission_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ admission.attending_doctor.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'danger' if admission.priority_level == 'emergency'
+                                                              else 'warning' if admission.priority_level == 'urgent'
+                                                              else 'info' if admission.priority_level == 'semi_urgent'
+                                                              else 'secondary' }}">
+                                            {{ admission.priority_level.replace('_', ' ').title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ admission.admission_reason }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if admission.status == 'active'
+                                                              else 'warning' if admission.status == 'waiting'
+                                                              else 'secondary' }}">
+                                            {{ admission.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if admission.status == 'active' %}
+                                        <form action="{{ url_for('discharge_patient', id=admission.patient.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Are you sure you want to discharge this patient?')">
+                                                <i class="fas fa-door-open"></i> Discharge
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No active admissions</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

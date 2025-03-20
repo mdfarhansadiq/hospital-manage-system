@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <!-- Inventory Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Items</h5>
+                    <h2>{{ items|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Low Stock Items</h5>
+                    <h2>{{ low_stock_items|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Expiring Soon</h5>
+                    <h2>{{ expiring_soon|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Active Suppliers</h5>
+                    <h2>{{ suppliers|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mb-4">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+            <i class="fas fa-plus"></i> Add New Item
+        </button>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addBatchModal">
+            <i class="fas fa-boxes"></i> Add Batch
+        </button>
+        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
+            <i class="fas fa-exchange-alt"></i> Record Transaction
+        </button>
+        <a href="{{ url_for('inventory_analytics') }}" class="btn btn-secondary">
+            <i class="fas fa-chart-bar"></i> View Analytics
+        </a>
+    </div>
+
+    <!-- Alerts Section -->
+    {% if low_stock_items %}
+    <div class="alert alert-warning">
+        <h5><i class="fas fa-exclamation-triangle"></i> Low Stock Alerts</h5>
+        <ul class="list-unstyled">
+            {% for item in low_stock_items %}
+            <li>
+                {{ item.name }} - Current Stock: {{ item.current_stock }} 
+                (Below minimum: {{ item.minimum_stock }})
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if expiring_soon %}
+    <div class="alert alert-danger">
+        <h5><i class="fas fa-clock"></i> Expiring Items</h5>
+        <ul class="list-unstyled">
+            {% for batch in expiring_soon %}
+            <li>
+                {{ batch.item.name }} - Batch: {{ batch.batch_number }} 
+                (Expires: {{ batch.expiry_date.strftime('%Y-%m-%d') }})
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Inventory Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Inventory Items</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Current Stock</th>
+                            <th>Unit</th>
+                            <th>Status</th>
+                            <th>Location</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ item.sku }}</td>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.category }}</td>
+                            <td>{{ item.current_stock }}</td>
+                            <td>{{ item.unit }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if item.check_stock_status() == 'ok' else 'danger' }}">
+                                    {{ item.check_stock_status() }}
+                                </span>
+                            </td>
+                            <td>{{ item.location }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="viewItem({{ item.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="editItem({{ item.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('add_inventory_item') }}" method="POST" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">SKU</label>
+                        <input type="text" class="form-control" name="sku" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select class="form-select" name="category" required>
+                            <option value="">Select Category</option>
+                            <option value="medication">Medication</option>
+                            <option value="supplies">Medical Supplies</option>
+                            <option value="equipment">Equipment</option>
+                        </select>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Unit</label>
+                            <input type="text" class="form-control" name="unit" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Unit Cost</label>
+                            <input type="number" step="0.01" class="form-control" name="unit_cost">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Min Stock</label>
+                            <input type="number" class="form-control" name="minimum_stock" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Max Stock</label>
+                            <input type="number" class="form-control" name="maximum_stock" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Reorder Qty</label>
+                            <input type="number" class="form-control" name="reorder_quantity" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location</label>
+                        <input type="text" class="form-control" name="location">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Supplier</label>
+                        <select class="form-select" name="supplier_id">
+                            <option value="">Select Supplier</option>
+                            {% for supplier in suppliers %}
+                            <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Item</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Transaction Modal -->
+<div class="modal fade" id="addTransactionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Record Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('add_inventory_transaction') }}" method="POST" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Item</label>
+                        <select class="form-select" name="inventory_item_id" required onchange="loadBatches(this.value)">
+                            <option value="">Select Item</option>
+                            {% for item in items %}
+                            <option value="{{ item.id }}">{{ item.name }} ({{ item.sku }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Transaction Type</label>
+                        <select class="form-select" name="transaction_type" required>
+                            <option value="received">Received</option>
+                            <option value="consumed">Consumed</option>
+                            <option value="expired">Expired</option>
+                            <option value="adjusted">Adjusted</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity</label>
+                        <input type="number" class="form-control" name="quantity" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Batch</label>
+                        <select class="form-select" name="batch_id" id="batchSelect">
+                            <option value="">Select Batch</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <input type="text" class="form-control" name="department">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reference Number</label>
+                        <input type="text" class="form-control" name="reference_number">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Record Transaction</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadBatches(itemId) {
+    const batchSelect = document.getElementById('batchSelect');
+    batchSelect.innerHTML = '<option value="">Select Batch</option>';
+    
+    if (!itemId) return;
+
+    fetch(`/api/inventory/${itemId}/batches`)
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(batch => {
+                const option = document.createElement('option');
+                option.value = batch.id;
+                option.textContent = `${batch.batch_number} (Qty: ${batch.remaining_quantity})`;
+                batchSelect.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function viewItem(id) {
+    // Implement view functionality
+}
+
+function editItem(id) {
+    // Implement edit functionality
+}
+</script>
+{% endblock %}

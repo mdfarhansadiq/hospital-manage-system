@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-users"></i>
+            <h3>{{ stats.total_patients }}</h3>
+            <p>Total Patients</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-calendar-check"></i>
+            <h3>{{ stats.total_appointments }}</h3>
+            <p>Appointments</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-bed"></i>
+            <h3>{{ stats.available_beds }}</h3>
+            <p>Available Beds</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-user-md"></i>
+            <h3>{{ stats.total_staff }}</h3>
+            <p>Staff Members</p>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Patient Statistics</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="patientStats"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Bed Occupancy</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="bedOccupancy"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

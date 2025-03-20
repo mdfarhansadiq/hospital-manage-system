@@ -1,0 +1,94 @@
+<div class="modal fade" id="editPatientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Patient Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editPatientForm" action="{{ url_for('update_patient', id=patient.id) }}" method="POST" class="needs-validation" novalidate>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" name="name" value="{{ patient.name }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Age</label>
+                            <input type="number" class="form-control" name="age" value="{{ patient.age }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Gender</label>
+                            <select class="form-select" name="gender" required>
+                                <option value="M" {{ 'selected' if patient.gender == 'M' }}>Male</option>
+                                <option value="F" {{ 'selected' if patient.gender == 'F' }}>Female</option>
+                                <option value="O" {{ 'selected' if patient.gender == 'O' }}>Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Contact</label>
+                            <input type="tel" class="form-control" name="contact" value="{{ patient.contact }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" value="{{ patient.email }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea class="form-control" name="address" rows="2">{{ patient.address }}</textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Blood Type</label>
+                            <select class="form-select" name="blood_type">
+                                <option value="">Unknown</option>
+                                {% for type in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] %}
+                                <option value="{{ type }}" {{ 'selected' if patient.blood_type == type }}>{{ type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date of Birth</label>
+                            <input type="date" class="form-control" name="date_of_birth" 
+                                   value="{{ patient.date_of_birth.strftime('%Y-%m-%d') if patient.date_of_birth }}">
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>Emergency Contact</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" name="emergency_contact_name" 
+                                   value="{{ patient.emergency_contact_name }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Contact Number</label>
+                            <input type="tel" class="form-control" name="emergency_contact_number"
+                                   value="{{ patient.emergency_contact_number }}">
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>Insurance Information</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Provider</label>
+                            <input type="text" class="form-control" name="insurance_provider"
+                                   value="{{ patient.insurance_provider }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Insurance Number</label>
+                            <input type="text" class="form-control" name="insurance_number"
+                                   value="{{ patient.insurance_number }}">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="editPatientForm" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Doctor Profile</h5>
+                </div>
+                <div class="card-body">
+                    <h4>{{ current_user.name }}</h4>
+                    <p><strong>Specialization:</strong> {{ current_user.specialization or 'Not specified' }}</p>
+                    <p><strong>License Number:</strong> {{ current_user.license_number or 'Not specified' }}</p>
+                    <p><strong>Contact:</strong> {{ current_user.contact_number or 'Not specified' }}</p>
+                    <p><strong>Availability:</strong> {{ current_user.availability or 'Not specified' }}</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editDoctorProfileModal">
+                        <i class="fas fa-edit"></i> Edit Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Today's Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h3>{{ today_appointments|length }}</h3>
+                                <p class="text-muted">Appointments Today</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h3>{{ pending_lab_tests|length }}</h3>
+                                <p class="text-muted">Pending Lab Tests</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Today's Appointments</h5>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAppointmentModal">
+                        <i class="fas fa-plus"></i> New Appointment
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Patient</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appointment in today_appointments %}
+                                <tr>
+                                    <td>{{ appointment.time.strftime('%H:%M') }}</td>
+                                    <td>{{ appointment.patient.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if appointment.status == 'Completed' 
+                                                            else 'warning' if appointment.status == 'In Progress'
+                                                            else 'info' }}">
+                                            {{ appointment.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewPatient({{ appointment.patient.id }})">
+                                            <i class="fas fa-user"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-primary" onclick="startConsultation({{ appointment.id }})">
+                                            <i class="fas fa-stethoscope"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Prescriptions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Patient</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prescription in recent_prescriptions %}
+                                <tr>
+                                    <td>{{ prescription.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ prescription.patient.name }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewPrescription({{ prescription.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Lab Test Results</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Patient</th>
+                                    <th>Test</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for test in recent_lab_tests %}
+                                <tr>
+                                    <td>{{ test.test_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ test.patient.name }}</td>
+                                    <td>{{ test.category.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if test.status == 'completed'
+                                                            else 'warning' if test.status == 'pending'
+                                                            else 'secondary' }}">
+                                            {{ test.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include modals -->
+{% include 'modals/edit_doctor_profile.html' %}
+{% include 'modals/add_appointment.html' %}
+{% endblock %}
